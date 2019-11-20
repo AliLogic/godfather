@@ -1,10 +1,6 @@
-local function isAdmin(player)
-    return true
-end
-
 AddCommand("admin", function(player)
-    if not isAdmin(player) then
-        AddPlayerChat("You are not an admin!")
+    if not IsPlayerAdmin(player) then
+        AddPlayerChat(player, "You are not an admin!")
         return
     end
     CallRemoteEvent(player, "OpenAdminMenu")
@@ -16,7 +12,7 @@ AddCommand("anim", function(player, anim)
 end)
 
 AddRemoteEvent("AdminTeleport", function(player, id, x, y, z)
-    if not isAdmin(player) then
+    if not IsPlayerAdmin(player) then
         return
     end
     if GetPlayerDimension(id) ~= 0 then
@@ -26,7 +22,7 @@ AddRemoteEvent("AdminTeleport", function(player, id, x, y, z)
 end)
 
 AddRemoteEvent("AdminTeleportPlayer", function(player, id, target)
-    if not isAdmin(player) then
+    if not IsPlayerAdmin(player) then
         return
     end
     local x, y, z = GetPlayerLocation(target)
@@ -37,7 +33,7 @@ AddRemoteEvent("AdminTeleportPlayer", function(player, id, target)
 end)
 
 AddRemoteEvent("AdminTeleportAll", function(player)
-    if not isAdmin(player) then
+    if not IsPlayerAdmin(player) then
         return
     end
     local x, y, z = GetPlayerLocation(player)
@@ -52,7 +48,7 @@ AddRemoteEvent("AdminTeleportAll", function(player)
 end)
 
 AddRemoteEvent("AdminAddMoney", function(player, target, type, amount)
-    if not isAdmin(player) then
+    if not IsPlayerAdmin(player) then
         return
     end
     local targets = {}
@@ -66,18 +62,16 @@ AddRemoteEvent("AdminAddMoney", function(player, target, type, amount)
         end
         targets = {target}
     end
-    if type == "Cash" then
+    if type == _("cash") then
         for i=1,#targets do
-            player_data[targets[i]].cash = player_data[targets[i]].cash + amount
-            SetPlayerPropertyValue(targets[i], "cash", player_data[targets[i]].cash, true)
+            SetPlayerCash(targets[i], GetPlayerCash(targets[i]) + amount)
         end
         AddPlayerChat(player, "Added cash successfully!")
         return
     end
-    if type == "Bank" then
+    if type == _("balance") then
         for i=1,#targets do
-            player_data[targets[i]].balance = player_data[targets[i]].balance + amount
-            SetPlayerPropertyValue(targets[i], "balance", player_data[targets[i]].balance, true)
+            SetPlayerBalance(targets[i], GetPlayerBalance(targets[i]) + amount)
         end
         AddPlayerChat(player, "Added balance successfully!")
         return
@@ -85,7 +79,7 @@ AddRemoteEvent("AdminAddMoney", function(player, target, type, amount)
 end)
 
 AddRemoteEvent("AdminGiveWeapon", function(player, target, weapon, slot, ammo, equip)
-    if not isAdmin(player) then
+    if not IsPlayerAdmin(player) then
         return
     end
     local targets = {}
@@ -106,7 +100,7 @@ AddRemoteEvent("AdminGiveWeapon", function(player, target, weapon, slot, ammo, e
 end)
 
 AddRemoteEvent("AdminSpawnVehicle", function(player, model, plate, radio, nitro)
-    if not isAdmin(player) then
+    if not IsPlayerAdmin(player) then
         return
     end
     local vehicle = CreateVehicle(model, GetPlayerLocation(player))
@@ -118,13 +112,14 @@ AddRemoteEvent("AdminSpawnVehicle", function(player, model, plate, radio, nitro)
     SetVehiclePropertyValue(vehicle, "radio", radio, true)
     SetVehiclePropertyValue(vehicle, "radio_station", 0, true)
     SetVehiclePropertyValue(vehicle, "radio_volume", 0, true)
+    SetVehicleRespawnParams(vehicle, false)
     SetPlayerInVehicle(player, vehicle)
 end)
 
 local spectating = {}
 
 AddRemoteEvent("AdminToggleSpec", function(player)
-    if not isAdmin(player) then
+    if not IsPlayerAdmin(player) then
         return
     end
     if spectating[player] == nil then

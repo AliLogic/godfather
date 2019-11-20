@@ -22,6 +22,7 @@ local itemTypes = {
     ["wp_mk16"] = { max = 10 },
     ["wp_hk416"] = { max = 10 },
     ["wp_awp"] = { max = 10 },
+    ["wp_tazer"] = { max = 10 },
     ["mag_rifle"] = {},
     ["mag_pistol"] = {},
     ["mobile_phone"] = {}
@@ -52,7 +53,8 @@ local weaponItems = {
     "wp_fal",
     "wp_mk16",
     "wp_hk416",
-    "wp_awp"
+    "wp_awp",
+    "wp_tazer"
 }
 
 local function getWPItemModel(item)
@@ -64,13 +66,58 @@ local function getWPItemModel(item)
     return 1
 end
 
-local function addInvItem(player, item, amount)
+function AddPlayerInventoryItem(player, item, amount)
+    if player_data[player] == nil then
+        return
+    end
     if player_data[player].inventory[item] == nil then
         player_data[player].inventory[item] = amount
     else
         player_data[player].inventory[item] = player_data[player].inventory[item] + amount
     end
     SetPlayerPropertyValue(player, "inventory", player_data[player].inventory, true)
+end
+
+function HasPlayerInventoryItem(player, item, amount)
+    if player_data[player] == nil then
+        return false
+    end
+    if player_data[player].inventory[item] == nil then
+        return false
+    end
+    if player_data[player].inventory[item] < amount then
+        return false
+    end
+    return true
+end
+
+function RemovePlayerInventoryItem(player, item, amount)
+    if player_data[player] == nil then
+        return
+    end
+    if player_data[player].inventory[item] == nil then
+        return
+    end
+    if player_data[player].inventory[item]-amount < 1 then
+        player_data[player].inventory[item] = nil
+    else
+        player_data[player].inventory[item] = player_data[player].inventory[item] - amount
+    end
+    SetPlayerPropertyValue(player, "inventory", player_data[player].inventory, true)
+end
+
+function GetPlayerInventoryItemAmount(player, item)
+    if player_data[player] == nil then
+        return 0
+    end
+    if player_data[player].inventory[item] == nil then
+        return 0
+    end
+    return player_data[player].inventory[item]
+end
+
+function CanPlayerCarryItem(player, item, amount)
+    return player_data[player].inventory[item] + amount <= itemTypes[item].max
 end
 
 local function weaponPack(player, slot)
@@ -82,16 +129,16 @@ local function weaponPack(player, slot)
         magItem = "mag_pistol"
     end
     local model, ammo = GetPlayerWeapon(player, slot)
-    if model ~= 0 then
+    if model ~= 1 then
         local mags = 0
         while ammo >= weapon_config[model].MagazineSize do
             mags = mags + 1
             ammo = ammo - weapon_config[model].MagazineSize
         end
         if mags > 0 then
-            addInvItem(player, magItem, mags)
+            AddPlayerInventoryItem(player, magItem, mags)
         end
-        addInvItem(player, weaponItems[model], 1)
+        AddPlayerInventoryItem(player, weaponItems[model], 1)
     end
 end
 
@@ -105,7 +152,7 @@ local function useWeaponItem(player, item)
         slot = 3
     end
     weaponPack(player, slot)
-    SetPlayerWeapon(player, newModel, 0, true, slot)
+    SetPlayerWeapon(player, newModel, 0, true, slot, false)
 end
 
 AddCommand("packweapon", function(player)
@@ -120,7 +167,7 @@ AddEvent("OnPlayerJoin", function(player)
 end)
 
 AddRemoteEvent("InventoryUseItem", function(player, item)
-    if player_data[player].inventory[item] == nil then
+    if not HasPlayerInventoryItem(player, item, 1) then
         return
     end
     local used = false
@@ -140,23 +187,19 @@ AddRemoteEvent("InventoryUseItem", function(player, item)
     if item == "mag_rifle" then
         local model, ammo = GetPlayerWeapon(player, 2)
         if model ~= 0 then
-            SetPlayerWeapon(player, model, ammo + weapon_config[model].MagazineSize, true, 2)
+            SetPlayerWeapon(player, model, ammo + weapon_config[model].MagazineSize, true, 2, true)
             used = true
         end
     end
     if item == "mag_pistol" then
         local model, ammo = GetPlayerWeapon(player, 3)
         if model ~= 0 then
-            SetPlayerWeapon(player, model, ammo + weapon_config[model].MagazineSize, true, 3)
+            SetPlayerWeapon(player, model, ammo + weapon_config[model].MagazineSize, true, 3, true)
             used = true
         end
     end
     if used then
-        if player_data[player].inventory[item] > 1 then
-            player_data[player].inventory[item] = player_data[player].inventory[item] - 1
-        else
-            player_data[player].inventory[item] = nil
-        end
+        RemovePlayerInventoryItem(player, item, 1)
         SetPlayerPropertyValue(player, "inventory", player_data[player].inventory, true)
     end
 end)
@@ -174,28 +217,15 @@ AddRemoteEvent("InventoryGiveItem", function(player, target, item, amount)
     if amount < 1 then
         return
     end
-    if player_data[player].inventory[item] == nil then
+    if not HasPlayerInventoryItem(player, item, amount) then
         return
     end
-    if player_data[player].inventory[item] < amount then
+    if not CanPlayerCarryItem(target, item, amount) then
+        AddPlayerChat(player, _("inventory_other_cannot_carry"))
         return
     end
-    local old = 0
-    if player_data[target].inventory[item] ~= nil then
-        if player_data[target].inventory[item] + amount > itemTypes[item].max then
-            AddPlayerChat(player, _("inventory_other_cannot_carry"))
-            return
-        end
-        old = player_data[target].inventory[item]
-    end
-    if player_data[player].inventory[item] == amount then
-        player_data[player].inventory[item] = nil
-    else
-        player_data[player].inventory[item] = player_data[player].inventory[item] - amount
-    end
-    player_data[target].inventory[item] = old + amount
-    SetPlayerPropertyValue(player, "inventory", player_data[player].inventory, true)
-    SetPlayerPropertyValue(target, "inventory", player_data[target].inventory, true)
+    RemovePlayerInventoryItem(player, item, amount)
+    AddPlayerInventoryItem(target, item, amount)
     AddPlayerChat(player, _("inventory_gave_to_player", GetPlayerName(target), _("item_"..item), amount))
     AddPlayerChat(target, _("inventory_got_by_player", GetPlayerName(target), _("item_"..item), amount))
 end)

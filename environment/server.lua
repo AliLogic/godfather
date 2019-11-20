@@ -1,6 +1,19 @@
+local data = config["time"]
+
 AddEvent("OnPlayerJoin", function(player)
-    local data = {}
-    data["time"] = config["time"]
-    data["time"]["serverTime"] = GetTimeSeconds()
-    CallRemoteEvent(player, "OnEnvironmentExchange", data)
+    if data["mode"] == "real" then
+        data["server_time"] = GetTimeSeconds()
+    end
+    CallRemoteEvent(player, "TimeUpdate", data)
 end)
+
+if data["mode"] == "real" then
+    CreateTimer(function()
+        local data = config["time"]
+        data["time"]["server_time"] = GetTimeSeconds()
+        local players = GetAllPlayers()
+        for i=1,#players do
+            CallRemoteEvent(players[i], "TimeUpdate", data)
+        end
+    end, 60000)
+end

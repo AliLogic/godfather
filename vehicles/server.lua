@@ -1,18 +1,17 @@
-local function isAdmin(player)
-    return true
-end
+local fuelUsage = 100 / 3600
+local fuelPrice = 5
 
 local function calcPrice(liter)
-    return liter * 1.67
+    return liter * fuelPrice
 end
-
-local fuelUsage = 30 / 3600
 
 CreateTimer(function()
     local vehicles = GetAllVehicles()
     for i=1, #vehicles do
         if GetVehicleEngineState(vehicles[i]) then
-            SetVehiclePropertyValue(vehicles[i], "fuel", GetVehiclePropertyValue(vehicles[i], "fuel") - fuelUsage, true)
+            if GetVehiclePropertyValue(vehicles[i], "fuel") ~= nil then
+                SetVehiclePropertyValue(vehicles[i], "fuel", GetVehiclePropertyValue(vehicles[i], "fuel") - fuelUsage, true)
+            end
         end
     end
 end, 1000)
@@ -21,7 +20,7 @@ AddRemoteEvent("VehicleMenuAction", function(player, action, vehicle)
     if action == "Lock" then
         local owner = GetVehiclePropertyValue(vehicle, "owner")
         if owner == -1 then
-            if not isAdmin(player) then
+            if not IsPlayerAdmin(player) then
                 AddPlayerChat(player, _("vehicle_doesnt_belong_to"))
                 return
             end
@@ -89,10 +88,8 @@ AddRemoteEvent("VehicleRefuel", function(player, vehicle, liter)
     local oldFuel = GetVehiclePropertyValue(vehicle, "fuel")
     if liter <= 100 - oldFuel then
         SetVehiclePropertyValue(vehicle, "fuel", oldFuel + liter, true)
-        AddPlayerChat(player, _("vehicle_refueled"))
-    else
-        AddPlayerChat("Your tank is too full! (server)")
     end
+    AddPlayerChat(player, _("vehicle_refueled"))
 end)
 
 AddRemoteEvent("VehicleRadioStation", function(player, vehicle, station, volume)
@@ -133,6 +130,7 @@ AddEvent("OnPlayerDataReady", function(player, data)
                 health = mariadb_get_value_name_int(row, "health"),
                 fuel = mariadb_get_value_name_float(row, "fuel")
             }
+            
             if not playerVehicle.towed then
                 playerVehicle.entity = CreateVehicle(playerVehicle.model, playerVehicle.x, playerVehicle.y, playerVehicle.z, playerVehicle.heading)
                 SetVehicleColor(playerVehicle.entity, playerVehicle.color)
@@ -149,6 +147,7 @@ AddEvent("OnPlayerDataReady", function(player, data)
                 SetVehiclePropertyValue(playerVehicle.entity, "radio", playerVehicle.radio, true)
                 SetVehiclePropertyValue(playerVehicle.entity, "radio_station", 0, true)
                 SetVehiclePropertyValue(playerVehicle.entity, "radio_volume", 0, true)
+                SetVehicleRespawnParams(playerVehicle.entity, false)
             end
             table.insert(player_data[player].vehicles, playerVehicle)
         end

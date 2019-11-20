@@ -101,18 +101,18 @@ AddEvent("OnTranslationReady", function()
         "AWP (20)"
     }
     
-    adminMenu = Dialog.create("Admin", nil, _("teleport"), _("give_money"), _("give_weapon"), _("spawn_vehicle"), _("copy_position"), "Toggle Spec",_("cancel"))
-    teleportMenu = Dialog.create(_("teleport"), nil, "To Place", "To Coords", "To Player", "Teleport Player", "Teleport All", _("cancel"))
-    teleportPlaceMenu = Dialog.create(_("places"), "Select a place to teleport to", table.unpack(teleportPlaceNames))
-    teleportCoordsMenu = Dialog.create("Coords", "Enter coords to teleport to", _("teleport"), _("cancel"))
+    adminMenu = Dialog.create("Admin", nil, _("teleport"), _("give_money"), _("give_weapon"), _("spawn_vehicle"), _("copy_position"), _("toggle_spectator"),_("cancel"))
+    teleportMenu = Dialog.create(_("teleport"), nil, _('to_place'), _("to_coords"), _("to_player"), _("teleport_player"), _("teleport_all"), _("cancel"))
+    teleportPlaceMenu = Dialog.create(_("places"), nil, table.unpack(teleportPlaceNames))
+    teleportCoordsMenu = Dialog.create(_("coords"), nil, _("teleport"), _("cancel"))
     Dialog.addTextInput(teleportCoordsMenu, 1, "X")
     Dialog.addTextInput(teleportCoordsMenu, 1, "Y")
     Dialog.addTextInput(teleportCoordsMenu, 1, "Z")
-    teleportToPlayerMenu = Dialog.create(_("players"), "Select a player to teleport to", _("teleport"), _("cancel"))
+    teleportToPlayerMenu = Dialog.create(_("players"), nil, _("teleport"), _("cancel"))
     Dialog.addSelect(teleportToPlayerMenu, 1, _("player"), 1)
-    teleportPlayerMenu = Dialog.create(_("players"), "Select a player to teleport to you", _("teleport"), _("cancel"))
+    teleportPlayerMenu = Dialog.create(_("players"), nil, _("teleport"), _("cancel"))
     Dialog.addSelect(teleportPlayerMenu, 1, _("player"), 1)
-    moneyMenu = Dialog.create(_("give_money"), nil, _("give_weapon"), _("cancel"))
+    moneyMenu = Dialog.create(_("give_money"), nil, _("give_money"), _("cancel"))
     Dialog.addSelect(moneyMenu, 1, _("type"), 1, _("cash"), _("balance"))
     Dialog.addSelect(moneyMenu, 1, _("player"), 1)
     Dialog.addTextInput(moneyMenu, 1, _("amount"))
@@ -233,7 +233,7 @@ AddEvent("OnDialogSubmit", function(dialog, button, ...)
     if dialog == teleportToPlayerMenu then
         if button == 1 then
             local args = {...}
-            local id = parsePlayerOptionId(args[1])
+            local id = parseOptionId(args[1])
             CallRemoteEvent("AdminTeleportPlayer", GetPlayerId(), id)
         end
         return
@@ -241,7 +241,7 @@ AddEvent("OnDialogSubmit", function(dialog, button, ...)
     if dialog == teleportPlayerMenu then
         if button == 1 then
             local args = {...}
-            local id = parsePlayerOptionId(args[1])
+            local id = parseOptionId(args[1])
             CallRemoteEvent("AdminTeleportPlayer", id, GetPlayerId())
         end
         return
